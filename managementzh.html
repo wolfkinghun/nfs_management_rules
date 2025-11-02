@@ -1,0 +1,759 @@
+<!DOCTYPE html>
+<html lang="hu" class="dark">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>NFS GAMF Management</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+
+<style>
+  :root{
+    --accent:#ff5a00;
+    --bg-dark:#000;
+  }
+
+  /* BACKGROUND IMAGES FIXED URLs (REMOVED FB PARAMETERS) */
+  body{
+    background-color:var(--bg-dark);
+    color:#f2f2f2;
+    background-image:url("nfs.jpg");
+    background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center center;
+    background-attachment:fixed;
+    transition:0.5s;
+  }
+
+  html.light body{
+    background-image:url("nfs.jpg");
+    color:#000;
+  }
+
+  /* HERO FIX */
+  #heroOverlay{
+    position:fixed; inset:0; display:flex; justify-content:center; align-items:center;
+    background:rgba(0,0,0,0.6); z-index:100; backdrop-filter:blur(4px);
+  }
+  #heroCard{
+    width:min(90%,550px); border-radius:14px; overflow:hidden;
+    opacity:0; transform:scale(.92) translateY(20px);
+    animation:heroIn .5s forwards ease-out;
+  }
+
+  @keyframes heroIn{
+    to{opacity:1; transform:scale(1) translateY(0);}
+  }
+  @keyframes heroOut{
+    to{opacity:0; transform:scale(.88) translateY(-40px);}
+  }
+
+  /* FLOAT NAV (DESKTOP ONLY) */
+  #floatNav{
+    position:fixed; right:16px; bottom:18px; display:flex; flex-direction:column; gap:10px;
+    z-index:60;
+  }
+  .fn-btn{
+    background:var(--accent); color:#000; padding:8px 14px; font-weight:700;
+    border-radius:999px; box-shadow:0 6px 18px rgba(0,0,0,0.4);
+  }
+
+  @media(max-width:640px){
+    #floatNav{display:none;}
+  }
+
+  /* MOBILE MENU BUTTON */
+  #mobileMenuBtn{
+    display:none;
+    position:fixed; right:16px; bottom:16px; z-index:70;
+    height:50px; width:50px;
+    border-radius:50%; background:var(--accent);
+    color:#000; font-size:22px; font-weight:900;
+    display:flex; justify-content:center; align-items:center;
+    box-shadow:0 8px 22px rgba(0,0,0,0.5);
+    transition:0.2s;
+  }
+  #mobileMenuBtn:active{ transform:scale(.9); }
+
+  @media(max-width:640px){
+    #mobileMenuBtn{display:flex;}
+  }
+
+  /* MOBILE SLIDE-UP MENU */
+  #mobileMenu{
+    position:fixed; left:0; right:0; bottom:-650px; height:650px;
+    background:#111; color:white; padding:20px; z-index:65;
+    border-radius:20px 20px 0 0;
+    transition:0.35s ease-out;
+  }
+  #mobileMenu.show{
+    bottom:0;
+  }
+  .mob-link{
+    display:block; padding:12px; border-bottom:1px solid #222;
+    font-size:18px; font-weight:600; color:var(--accent);
+  }
+
+  /* SECTION BOXES */
+  .section-box{
+    background:rgba(0,0,0,0.55);
+    padding:20px; border-radius:16px; backdrop-filter:blur(6px);
+    border:1px solid rgba(255,255,255,0.07);
+    margin-bottom:40px;
+  }
+  html.light .section-box{
+    background:rgba(255,255,255,0.85);
+    border:1px solid rgba(0,0,0,0.1);
+  }
+  pre, code {
+  white-space: pre-wrap;       /* megtartja a sortörést, de lehet tördelni */
+  word-break: break-word;      /* hosszú szavak vagy linkek tördelése */
+  overflow-wrap: break-word;   /* ugyanaz, kompatibilitás miatt */
+}
+
+</style>
+</head>
+
+<body>
+
+<!-- HERO -->
+<div id="heroOverlay">
+  <div id="heroCard">
+    <img src="https://scontent-vie1-1.xx.fbcdn.net/v/t39.30808-6/490313303_1450119786339724_3455413286331615443_n.jpg?_nc_cat=111&ccb=1-7&_nc_sid=cc71e4&_nc_ohc=oexM5KbcC0QQ7kNvwE9PEms&_nc_oc=AdmuSkL_gRgWbQAedi_pS6Lo5I0PFqoK6Ax3S-sksmO-PUf3CP536yHuGynN1s6So-MbIfxHVQHjaSHFZrXQPPPx&_nc_zt=23&_nc_ht=scontent-vie1-1.xx&_nc_gid=1Aa3KR2GgeY_3LNFRa_YPA&oh=00_AfieL5i59cfRhAT9Axv2bI3UA5mZgGDH5uW2VDnhwlrCgg&oe=690CEBD3"
+    style="width:100%; display:block;">
+  </div>
+</div>
+
+<script>
+  setTimeout(()=>{
+    let card=document.getElementById("heroCard");
+    let ov=document.getElementById("heroOverlay");
+    card.style.animation="heroOut .6s forwards";
+    setTimeout(()=>ov.remove(),550);
+  },1000);
+</script>
+
+<!-- HEADER -->
+<header class="sticky top-0 z-40 backdrop-blur bg-black/40 text-white px-4 py-3 flex justify-between">
+  <div class="flex items-center gap-3">
+    <div style="background:var(--accent)" class="w-10 h-10 rounded-full flex items-center justify-center font-bold text-black">FS</div>
+    <div>
+      <div class="font-semibold text-lg">Formula Student Rules</div>
+      <div class="opacity-70 text-sm">Management ZH</div>
+    </div>
+  </div>
+
+  <button id="modeToggle" class="px-3 py-2 rounded-md bg-white/10">
+    Light mode
+  </button>
+</header>
+
+<script>
+document.getElementById('modeToggle').onclick=function(){
+  let html=document.documentElement;
+  html.classList.toggle("light");
+  this.textContent=html.classList.contains("light")?"Dark mode":"Light mode";
+}
+</script>
+
+<!-- DESKTOP FLOATING NAV -->
+<nav id="floatNav" class="fixed right-4 flex flex-col gap-2 z-50" style="top:150px;">
+  <a class="fn-btn bg-orange-600 hover:bg-orange-500 text-white px-3 py-1 rounded text-sm text-center" href="#A1_3">A1.3</a>
+  <a class="fn-btn bg-orange-600 hover:bg-orange-500 text-white px-3 py-1 rounded text-sm text-center" href="#A5">A5</a>
+  <a class="fn-btn bg-orange-600 hover:bg-orange-500 text-white px-3 py-1 rounded text-sm text-center" href="#T12_3">T12.3</a>
+  <a class="fn-btn bg-orange-600 hover:bg-orange-500 text-white px-3 py-1 rounded text-sm text-center" href="#T13_12">T13</a>
+  <a class="fn-btn bg-orange-600 hover:bg-orange-500 text-white px-3 py-1 rounded text-sm text-center" href="#IN1">IN1</a>
+  <a class="fn-btn bg-orange-600 hover:bg-orange-500 text-white px-3 py-1 rounded text-sm text-center" href="#IN12">IN1.2</a>
+  <a class="fn-btn bg-orange-600 hover:bg-orange-500 text-white px-3 py-1 rounded text-sm text-center" href="#IN13">IN1.3</a>
+  <a class="fn-btn bg-orange-600 hover:bg-orange-500 text-white px-3 py-1 rounded text-sm text-center" href="#S">S</a>
+  <a class="fn-btn bg-orange-600 hover:bg-orange-500 text-white px-3 py-1 rounded text-sm text-center" href="#D1">D1</a>
+</nav>
+
+
+<!-- MOBILE MENU BUTTON -->
+<div id="mobileMenuBtn">≡</div>
+
+<!-- MOBILE MENU -->
+<div id="mobileMenu">
+  <a class="mob-link" href="#A1_3">A1.3</a>
+  <a class="mob-link" href="#A5">A5</a>
+  <a class="mob-link" href="#T12_3">T12.3</a>
+  <a class="mob-link" href="#T13_12">T13</a>
+  <a class="mob-link" href="#IN1">IN1</a>
+  <a class="mob-link" href="#IN12">IN1.2</a>
+  <a class="mob-link" href="#IN13">IN1.3</a>
+  <a class="mob-link" href="#S">S</a>
+  <a class="mob-link" href="#D1">D1</a>
+</div>
+
+<script>
+document.getElementById("mobileMenuBtn").onclick=function(){
+  document.getElementById("mobileMenu").classList.toggle("show");
+}
+</script>
+
+<!-- MAIN -->
+<main class="max-w-5xl mx-auto mt-8 px-6 sm:px-8 lg:px-12 pb-24">
+
+
+  <div id="A1_3" class="section-box"><h2 class="text-2xl font-bold">A1.3</h2><pre>
+A1.3 Competition Information
+A1.3.1 The competition specific rules and information are defined in the competition handbook.
+A1.3.2 The official language of the competition is English.
+A1.3.3 Every organizer of a competition based on this document bears the sole responsibility.
+Formula Student Rules 2025 Version: 1.1 9 of 133
+A2 Vehicle Eligibility
+CV & EV DC
+Static Events:
+Business Plan Presentation 75 points -
+Cost and Manufacturing 100 points -
+Engineering Design 150 points 150 points
+Dynamic Events:
+Skidpad 50 points -
+Driverless (DV) Skidpad 75 points 75 points
+Acceleration 50 points -
+Driverless (DV) Acceleration 75 points 75 points
+Autocross 100 points -
+Driverless (DV) Autocross - 100 points
+Endurance 250 points -
+Efficiency 75 points -
+Trackdrive - 200 points
+Overall 1000 points 600 points
+Table 3: Maximum points awarded
+</pre></div>
+  <div id="A5" class="section-box"><h2 class="text-2xl font-bold">A5</h2><pre>
+A 5 DOCUMENTATION & DEADLINES
+A5.1 Required Documents and Forms
+A5.1.1 Several documents and forms must be submitted by the action deadlines defined in the
+competition handbook.
+A5.2 Submission
+A5.2.1 Submitted documents may only be viewed by members of the submitting team, authorized
+judges and officials.
+A5.2.2 By submitting documents via the competition website, the team agrees that they may
+be reproduced and distributed by the officials, in both complete and edited versions, for
+educational purpose.
+A5.2.3 Documents or videos that are largely incomplete or not readable/viewable will be considered
+as not submitted.
+A5.3 Correction Requests
+A5.3.1 If the officials request a correction for a document, the corrected version has to be submitted
+within 168 hours (7 days) following the request.
+A5.3.2 Corrections requested before the initial deadline are treated as if they were requested at the
+initial deadline.
+A5.3.3 Separate requests for different parts within one document or form will be treated independently.
+A5.3.4 If the corrected version of the document does not completely contain all requested corrections,
+the team will be de-registered from the competition.
+Formula Student Rules 2025 Version: 1.1 14 of 133
+A5 Documentation & Deadlines
+A5.4 Late Submission or Non-Submission
+A5.4.1 For each submission later than the respective deadline 10 penaltypoints are deducted from
+the team’s overall score.
+A5.4.2 Teams that do not submit documents until 24 hours (1 day) after the respective deadline will
+be de-registered from the competition.
+A5.5 De-registration
+A5.5.1 A team which is de-registered from the competition has a single chance to apply for a place
+on the waiting list.
+A5.5.2 To apply, the team must complete the following within 24 hours after the de-registration
+notification
+• Submit an informal application to the officials
+• Correct the reason for de-registration (e.g. submission of a document)
+A5.5.3 If the application is positively confirmed by the officials, the team will:
+• Be placed at the end of the waiting list.
+• Receive 20 penalty points.
+A5.5.4 Applications will be declined if the rework is inadequate or de-registration was caused by
+misbehavior of the team.
+A5.6 Vehicle Status Video
+A5.6.1 All teams must submit a video showing the vehicle driving in manual mode before the
+competition. The video must be submitted before the deadline specified in the competition
+handbook.
+A5.6.2 [DC ONLY] The vehicle must instead drive in autonomous mode. No manual mode VSV is
+necessary.
+A5.6.3 The video must show the following sequences in the described order:
+• Standing still
+• 360◦ video around the vehicle (close up, may overlap with the following two bullet
+points)
+• [CV ONLY] Start engine / [EV ONLY] Activate TS
+• Straight driving, minimum distance is 30 m, minimum speed is 10 km/h for manual
+mode
+• Full stop (not needed for autonomous mode VSV)
+• 180◦
+cornering
+• Straight driving back to start point, minimum speed is 10 km/h for manual mode
+• [DC ONLY] At the end of the VSV, the vehicle must be stopped by an emergency
+brake maneuver, see T15.
+Formula Student Rules 2025 Version: 1.1 15 of 133
+A5 Documentation & Deadlines
+• Standing still, [CV ONLY] engine off / [EV ONLY] TS deactivated
+A5.6.4 The video must fulfill the following criteria:
+• Continuous video from a third person view - no assembled sequences
+• Vehicle must be clearly visible (light, video resolution, landscape mode, frames and
+frequency)
+• Vehicle must run under its own power
+• Driving must follow A6.3.4
+• Vehicle must be presented in ready-to-race conditions incl. body work
+• No crossing in front of the vehicle after [EV ONLY] TS activated / [CV ONLY] engine
+started
+• [EV ONLY] Tractive System Active Light (TSAL), [DC ONLY] Autonomous System
+Status Indicator (ASSI), and brake light, must be clearly visible in the video
+• [EV ONLY] Ready-to-drive (R2D) sound must be audible in the video
+• [DC ONLY] In addition to the third person view, an onboard view and a visualization
+of the vehicle’s environment perception and path planning must be shown in split
+screen. All parts must be time synchronized.
+• Must not exceed a length of 60 seconds.
+A5.6.5 If a team fails only the [DC ONLY] part, it will only be de-registered from the DC.
+A5.6.6 A team which uploads a VSV with a previous year vehicle will be de-registered from the
+competition.
+A5.7 SES Approval
+A5.7.1 Teams using a monocoque must submit a SESA as one document, in addition to the SES
+deadline. The SESA template will be available on the competition website.
+A5.7.2 The Structural Equivalency Spreadsheet (SES) must be checked and approved by a graduated
+engineer with appropriate expertise.
+A5.7.3 Once the SES has been approved, the SESA form should be filled out, signed and submitted
+until the SESA deadline.
+A5.7.4 If any changes to the original SES become necessary due to the approval process, the updated
+final SES must be submitted again on the competition website.
+A5.7.5 The changelog with details of all changes made from the “Version History” tab of the SES
+form must be attached to the SESA document and must also be signed by the SES reviewer.
+A5.7.6 The officials will randomly double check submitted SESA with their respective submitted
+SES.    
+  </pre></div>
+  <div id="T12_3" class="section-box"><h2 class="text-2xl font-bold">T12.3</h2><pre>
+T12.3 University Name
+T12.3.1 The university name must be written fully. Only the following abbreviations in the university
+name are allowed, if the city name is written fully:
+• University → Uni
+• Technical University → TU
+• University of Applied Sciences → UAS
+• Berufsakademie → BA
+• If the university officially uses an abbreviation in their proper name, this abbreviation
+is allowed.
+T12.3.2 The university name must be displayed and written in Roman Sans-Serif characters of at
+least 50 mm high on both sides of the vehicle.
+T12.3.3 The characters must be clearly visible at a distance and placed on a high contrast background.
+  </pre></div>
+  <div id="T13_12" class="section-box"><h2 class="text-2xl font-bold">T13.1 Push Bar</h2><pre>
+
+T13.1.2 The push bar must have a red color.
+T13.1.3 The university name must be written on the push bar. The characters must be clearly visible
+and placed on a high contrast background.
+  </pre></div>
+  <div id="T13.2 Jacks" class="section-box"><h2 class="text-2xl font-bold">T13.2 Jacks</h2><pre>
+
+T13.2.4 On both sides of the vehicle the devices pickup points must be indicated by orange triangles.
+T13.2.5 The university name must be written on the jacks. The characters must be clearly visible and
+placed on a high contrast background
+  </pre></div>
+  <div id="IN1" class="section-box"><h2 class="text-2xl font-bold">IN1</h2><pre>
+IN 1 GENERAL
+IN1.1 Technical Inspection Process
+IN1.1.1 The technical inspection is divided into the following parts:
+• Pre-Inspection
+• [EV ONLY] Accumulator Inspection
+• [EV ONLY] Electrical Inspection
+• Mechanical Inspection
+• Autonomous System Inspection
+• Tilt Test
+• Vehicle Weighing
+• [CV ONLY] Noise Test
+• [EV ONLY] Rain Test
+• Brake Test
+• EBS Test
+
+
+  </pre></div>
+  <div id="IN12" class="section-box"><h2 class="text-2xl font-bold">IN1.2</h2><pre>
+IN1.2 General Rules
+IN1.2.1 Each vehicle must pass all parts of technical inspection except Autonomous System Inspection and EBS Test before it may participate in any dynamic event.
+IN1.2.2 Each vehicle must pass Autonomous System Inspection and EBS Test before it may participate in any Driverless (DV) dynamic event.
+IN1.2.3 Passing the technical inspections is not a certification of complete rules compliance of the
+vehicle.
+IN1.2.4 The technical inspection sheet includes several inspection points and will be provided on the
+competition website before the competition. It must always stay with the push bar.
+IN1.2.5 The officials may inspect other points not mentioned on the technical inspection sheet to
+ensure compliance with the rules.
+IN1.2.6 Teams are responsible for confirming that their vehicle and the required equipment satisfies
+the requirements and restrictions of the rules before presenting it for technical inspection.
+IN1.2.7 Vehicles must be presented for technical inspection in ready-to-race condition.
+
+IN1.2.8 Safety uncritical rule violations without a benefit to the team that cannot be changed at
+the event may result in at least 20 penalty points for the teams, depending on officials’
+decision. Safety uncritical violations with a minor benefit to the team that cannot be changed
+at the event may result in at least 40 penalty points for the team. The penalty points will be
+deducted from the team’s overall score.
+IN1.2.9 All items on the inspection sheet must be clearly visible for the officials without using
+instruments such as endoscopes or mirrors. Visible access may be provided by removing
+body panels or by providing removable access panels.
+IN1.2.10 The vehicle must maintain all required specifications throughout the competition.
+IN1.2.11 Officials reserve the right to ask the team for drilling of additional inspection holes to check
+the chassis for compliance with the rules.
+IN1.2.12 Officials will mark or seal various different approved parts. Removal of or damage to the
+seals will void the inspection approval.
+IN1.2.13 Once the vehicle is approved for competition, any damage to the vehicle that requires repair(s)
+will void the inspection approval. After completion of the repair(s), the vehicle must be
+re-submitted to technical inspection for re-approval.
+IN1.2.14 The officials reserve the right to prohibit the use of parts that could pose a safety risk to
+drivers, track marshals or the environment.
+  </pre></div>
+  <div id="IN13" class="section-box"><h2 class="text-2xl font-bold">IN1.3</h2><pre>
+IN1.3 Technical Inspection Sticker
+
+IN1.3.1 The competition technical inspection stickers will be placed on the nose of the vehicle.
+IN1.3.2 If a vehicle is no longer in compliance with the rules, the officials will set the vehicle’s
+technical inspection status to fail, remove the respective inspection sticker(s) from the vehicle
+and note the reason for revoking the technical inspection approval in the technical inspection
+sheet.
+  </pre></div>
+  <div id="S" class="section-box"><h2 class="text-2xl font-bold">S – Static Events</h2><pre>
+    S 1 GENERAL RULES
+S1.1 Vehicle Condition
+S1.1.1 Vehicles must be presented for judging in finished condition, fully assembled, complete and
+ready-to-race.
+S1.1.2 The judges will not evaluate any vehicle that is presented in what they consider to be an
+unfinished state.
+S1.1.3 Vehicles may be presented for judging without having passed technical inspection, even if
+final tuning and setup is in progress.
+S1.1.4 Covers and/or parts may be removed during the judging to facilitate access and presentation
+of components or concepts.
+S 2 BUSINESS PLAN PRESENTATION EVENT
+S2.1 Business Plan Presentation Objective
+S2.1.1 The objective of the BPP is to assess the team’s ability to develop and present a comprehensive
+business model. This business model must offer a product or a service based on the team’s
+specific prototype vehicle or a specific component of it, providing a rewarding business
+opportunity that creates a monetary profit. The vehicle or component must be an essential
+part of the value proposition.
+S2.1.2 The judges should be treated as if they were potential investors or partners for the presented
+business model.
+S2.1.3 The quality of the actual prototype will not be considered as part of the BPP judging, therefore
+S1.1 does not apply.
+S2.2 Business Plan Presentation Procedure
+S2.2.1 Presentations are limited to a maximum of 10 min. The judges will stop any presentation
+exceeding 10 min.
+S2.2.2 The presentation will not be interrupted by questions. Immediately following the presentation
+there will be a question and answer session.
+S2.2.3 One or more team members may present the business plan.
+
+S2.2.4 All team members involved in the BPP must be in the podium area and must be introduced to
+the judges at the beginning of the presentation. The team members who have been introduced
+may answer the judges’ questions even if they were not actually presenting.
+S2.2.5 Teams that fail to make their presentation within their assigned time period will receive zero
+points for the BPP.
+S2.2.6 Before the competition a specific deep dive topic, which has to be part of the 10 min
+presentation, will be published on the competition website.
+S2.3 Pitch Video
+S2.3.1 To convince the potential investors or partners that the team’s presentation is worthy of
+their time, it is required that a Business Plan Pitch Video (BPPV) is submitted before the
+competition. The pitch video should be considered as the first impression of the business
+idea and has to contain the relevant investment figures.
+S2.3.2 The BPPV must be submitted online via the competition website, not later than the deadline
+specified in the competition handbook.
+S2.3.3 The BPPV must not exceed a length of 30 s and must be in a common video format, e.g. avi,
+mpg, mp4, wmv.
+S2.4 Business Plan Presentation Scoring
+S2.4.1 The BPP will be evaluated on the categories specified in table 6.
+Category Points
+Pitch Video 10
+Content 20
+Finances 10
+Deep Dive Topic 10
+Demonstration and Structure 15
+Delivery 10
+Questions 10
+General Impression 15
+Total 100
+Table 6: BPP evaluation categories
+S2.4.2 If the business model presented does not relate to one of the areas listed within S2.1.1,
+15 penaltypoints will be deducted from the team’s BPP scoring.
+S2.4.3 The judging at the competition will start with an initial judging, where all teams are judged
+by different judging groups.
+S2.4.4 Some teams may be chosen to participate in the BPP finals to determine the BPP winner.
+The BPP finals will be held separately from the initial judging and teams will be informed
+about their participation during the event.
+S2.4.5 The scoring of the BPP is based on the average of the scores given by each of the judges.
+
+S2.4.6 The scoring for the non-finalist is calculated as followed:
+BPP_SCORE = 70
+Pteam
+Pmax 
+Pteam is the score awarded to the team
+Pmax is the highest score awarded to any team not participating in the finals
+S2.4.7 The scoring of the BPP finalists will vary from 75 to 71 points and is scored immediately
+after the BPP finals by all judges.
+S 3 COST AND MANUFACTURING EVENT
+S3.1 Cost and Manufacturing Objective
+S3.1.1 The objective of the cost and manufacturing event is to evaluate the team’s understanding
+of the manufacturing processes, costs and greenhouse gas emissions associated with the
+construction of a prototype vehicle. This includes trade off decisions between content and
+cost, make or buy decisions and understanding the differences between prototype and mass
+production.
+S3.2 Cost and Manufacturing Procedure
+S3.2.1 Prior to the competition, three Cost Report Documents (CRD), see S3.3, must be submitted
+to the competition website by the deadline specified in the competition handbook.
+S3.2.2 During the competition, a discussion with the judges will take place, next to the team’s
+vehicle. The discussion is split into three parts:
+S3.2.3 Part 1 “Bill of Material (BOM) Discussion”:
+A discussion to evaluate the team’s ability to prepare an accurate engineering and manufacturing BOM for the complete vehicle. The team must prove the following:
+• The specification of the vehicle in the CRD accurately reflects the vehicle brought to
+the competition.
+• The costs and emissions within the Costed Carbonized Bill of Material (CCBOM) part
+of the BOM are correct and realistic.
+• The manufacturing feasibility of the vehicle.
+S3.2.4 Part 2 “Cost Understanding”:
+A discussion to evaluate the general cost and manufacturing knowledge of the team.
+S3.2.5 Part 3 “Real Case”:
+A specific task to evaluate the cost and manufacturing knowledge in a certain field. The real
+case task will be published on the competition website before the competition.
+S3.2.6 The teams must present their vehicle to the judges at the designated time. Teams that miss
+their time slot will score 0 points.
+S3.2.7 Teams are allowed to bring electronic, handwritten or printed handouts, flip charts or similar
+to the event, but the space available may be limited.
+
+S3.3 Cost Report Documents
+S3.3.1 The CRD consist of the following documents:
+• The BOM, including CCBOM, created and submitted online on the competition
+website
+• The supporting material file, submitted as a pdf file to the competition website
+• The cost and emissions explanation file, submitted as a pdf file to to the competition
+website
+S3.3.2 A changelog of the changes on the vehicle since the submission deadline of the CRD can be
+presented to the judges at the BOM discussion. Missing parts of the BOM cannot be part of
+the changelog.
+S3.3.3 All CRD must be brought to the event discussion either as hard copy or as digital version.
+S3.3.4 The website tool will provide a printable pdf version of the BOM.
+S3.3.5 The team must ensure that at least two judges are able to review the CRD independently.
+S3.3.6 The presented CRD must be identical to the submitted versions, otherwise 0 points will be
+scored for the “BOM Discussion” part.
+S3.4 Bill of Material
+S3.4.1 The BOM is a sorted list of all vehicle parts.
+S3.4.2 The BOM is structured as follows:
+• The BOM is broken down into “systems”, see S3.4.7.
+• Each “system” is broken down into “assemblies”, which are defined by the website
+tool.
+• Each “assembly” can optionally be broken down into “sub-assemblies”, which must
+be defined by the team.
+• Each “assembly” or “sub-assembly” is broken down into “parts”, which must be
+defined by the team.
+S3.4.3 The BOM must list all parts fitted to the prototype vehicle at any time during the competition.
+S3.4.4 Only dry tires and wheels per T2.7.1 need to be included in the BOM.
+S3.4.5 “Fasteners” are additional items necessary to assemble a “part” or “(sub-)assembly” and
+should not be listed (e.g. DIN-931 hexagon screw, glue, tape, zip-tie, . . . ).
+S3.4.6 A self-manufactured “fastener” is considered a “part”.
+S3.4.7 The “systems” are:
+• Autonomous System
+• Brake System
+• Chassis and Body
+• Drivetrain
+• Engine and Tractive System
+• Grounded Low Voltage System
+• Miscellaneous, Fit and Finish
+• Steering System
+• Suspension System
+• Wheels, Wheel Bearings and Tires
+S3.4.8 When adding “parts” to the BOM, the comments section should be reviewed thoroughly.
+The chosen part name must clearly describe what is included. For example, if a spring is
+included, the “part” should not be called “damper”.
+S3.4.9 Only metric units must be used within the BOM.
+S3.5 Costed Carbonized Bill of Material
+S3.5.1 The manufacturing and assembly processes, actual costs and greenhouse gas emissions of all
+parts from one or two systems of the BOM must be listed in the CCBOM.
+S3.5.2 For 2025, a CCBOM for the “Steering System” must be submitted.
+S3.5.3 Additional to the BOM, the CCBOM must:
+• Include the actual associated manufacturing processes for each part as used for the
+prototype vehicle.
+• Include tooling (e.g. welding jigs, molds, patterns and dies).
+• Include the actual costs of materials, fabrication, bought parts and assembly for each
+part as used for the prototype vehicle.
+• Include the system’s carbon footprint for each part, manufacturing and assembly
+process of the prototype vehicle in Carbon Dioxide Equivalents (CO2e).
+S3.5.4 Each constituent “part” of an “assembly” must be classified as “bought” or “made”.
+S3.5.5 Additional to the structure of the BOM, in the CCBOM each “part” is broken down into
+• “materials” used (e.g. aluminium)
+• “processes” that describe the necessary steps for manufacturing
+• “fasteners” used to assemble the part (if applicable)
+• “tooling” required for manufacturing (if applicable)
+• “overhead” for additional associated costs and emissions of manufacturing and assembly of a part that are not covered by the points above
+S3.5.6 “Tooling” is the necessary tools used for transforming the “material” into the desired shape.
+If production tooling is associated with processes that are specific to the part geometry, it
+must be included. For example the dies to stamp out a chassis bracket are tooling.
+S3.5.7 Hand or power tools must not be included.
+
+S3.5.8 For “bought parts”, only fasteners have to be included (if applicable). If the part was modified,
+the associated “processes” and “tooling” (if applicable) for this modification must also be
+included.
+S3.5.9 Only parts that can be bought from a catalog may be designated as “bought parts”.
+S3.5.10 The cost calculations must be completed as realistically as possible and exclude research,
+development and capital expenditures for real estates (e.g. plant or development hours of the
+team).
+S3.5.11 All costs must be displayed in EUR. For calculating the prices in EUR from other currencies,
+the team must provide the exchange rates used.
+S3.5.12 There is no maximum cost. Receipts are not required for any items.
+S3.5.13 The calculations for machine hourly rates, wages (including overheads) etc. must be shown.
+S3.5.14 The “carbon footprint” is calculated in CO2e based on a “Cradle-to-Gate” Life Cycle
+Assessment (LCA) of the selected “system(s)”.
+S3.5.15 The “Cradle-to-Gate” analysis includes extraction of raw materials needed, manufacturing of
+“made parts”, “sub-assemblies” and “assemblies” as well as manufacturing of the “system”
+(ready to be mounted into the final prototype vehicle).
+S3.5.16 For “bought parts”, only the “carbon footprint” of modifications has to be included.
+S3.5.17 The “carbon footprint” for the the transportation between the steps must be included.
+S3.5.18 The “carbon footprint” must exclude research and development.
+S3.6 Supporting Material File
+S3.6.1 The supporting material file is a document containing additional information which allows
+the judges to understand the BOM. It should include drawings, exploded view drawings
+and/or pictures of the vehicle and the parts included in the BOM.
+S3.7 Cost and Emissions Explanation File
+S3.7.1 The cost and emissions explanation file is a document which allows the judges to understand
+the costs and greenhouse gas emissions within the CCBOM part of the BOM.
+S3.7.2 The cost model used must be pointed out, especially which specific costs are included, e.g.
+machine operation costs.
+S3.7.3 The methodology used for determining the Global Warming Potential (GWP) in CO2e also
+needs to be explained. The specific carbon emission factors associates with e.g one material
+type need to be included.
+S3.8 Cost and Manufacturing Scoring
+S3.8.1 The team must present their vehicle according to S1.1 to score points in the cost and
+manufacturing event.
+
+S3.8.2 The cost and manufacturing event will be evaluated on the categories specified in the
+following table:
+Category Points
+Part 1 “BOM Discussion” 50
+Part 2 “Cost Understanding” 25
+Part 3 “Real Case” 25
+Total 100
+S3.8.3 If items are missing from the BOM, points are deducted until 0 points are scored for “BOM
+Discussion”.
+S3.8.4 Some teams may be chosen to participate in the cost and manufacturing finals to determine
+the cost and manufacturing event winner. The cost and manufacturing finals will be held
+separately from the initial judging and teams will be informed about their participation during
+the event.
+S3.8.5 In case of finals the highest achievable scoring for the non-finalists is 80 points.
+S 4 ENGINEERING DESIGN EVENT
+S4.1 Engineering Design Objective
+S4.1.1 The concept of the design event is to evaluate the student’s engineering process and effort
+that went into the design of a vehicle, meeting the intent of the competition.
+S4.1.2 Proprietary components and systems that are incorporated into the vehicle design as finished
+items are not evaluated as a student designed unit, but are only assessed on the team’s
+selection and application of that unit.
+S4.1.3 An evaluation concerning the capability of the vehicle to drive autonomously will also be
+part of this event. Therefore, all systems that are required to drive autonomously will be
+investigated. This also includes a discussion about the hardware and the software used in the
+AS.
+S4.2 Engineering Design Report
+S4.2.1 The EDR should contain a brief description of the overall vehicle including the AS with a
+review and derivation of the team’s design objectives. Any information to scope, explain
+or highlight design features, concepts, methods or objectives to express the value and
+performance of the vehicle to the judges should be included at the teams’ discretion.
+S4.2.2 The EDR must not exceed ten pages, consisting of not more than seven pages of content
+(text, which may include pictures and graphs) and three pages of drawings.
+S4.2.3 The three EDR drawings (no renderings) must show the vehicle from the front, the top and
+the side. Each drawing must appear on a separate page.
+S4.2.4 Any measures to facilitate reviewing the drawings (e.g. measurements, details, colors) may
+be utilized at the teams’ discretion.
+
+S4.2.5 Any portions of the EDR that exceeds seven pages of content and/or three pages of drawings
+will not be evaluated.
+S4.2.6 If included, cover sheets and tables of contents will count as text pages.
+S4.2.7 The EDR will be used to sort the teams into appropriate design queues based on the quality
+of its review.
+S4.2.8 Evidence of information mentioned in the EDR should be brought to the competition and be
+available, on request, for review by the judges.
+S4.3 Design Spec Sheet
+S4.3.1 A completed DSS must be submitted online on the competition website.
+S4.4 Engineering Design Procedure
+S4.4.1 The design event starts with the submission of the DSS and the EDR and their review
+respectively.
+S4.4.2 At the competition, teams will present their knowledge and their vehicle to the judges, which
+will evaluate the teams’ performance following the design objectives stated in chapter S4.1.
+S4.4.3 Some teams may be chosen to participate in the design finals to determine the engineering
+design event winner. The design finals will be held separately from the initial judging and
+teams will be informed about their participation during the event.
+S4.4.4 Teams may bring any photographs, drawings, charts, spare parts or other material that they
+believe are supportive to the design event, but the space provided for design judging may be
+limited.
+S4.4.5 [EV ONLY] Only sealed TSACs which passed the accumulator inspection may be presented
+or mounted in the vehicle. They must not be opened.
+S4.4.6 [EV ONLY] Only discharged, below 5 % State of Charge, accumulator cells each having all
+terminals electrically isolated may be presented.
+S4.4.7 [DC ONLY] There is no extra design presentation for the DC, however scoring will be
+adapted, see table 8, and there will be more judges during the normal presentation focusing
+on the AS.
+S4.4.8 [DC ONLY] There will be separate design finals for the DC.
+S4.5 Engineering Design Judging Criteria
+S4.5.1 The judges will evaluate the engineering effort based upon the teams’ DSS and EDR,
+responses to questions and an inspection of the vehicle.
+S4.5.2 The judges will inspect the vehicle to determine if the design concepts are adeq
+
+S4.5.3 The judges may deduct points if the team cannot adequately explain the engineering and
+construction of the vehicle.
+S4.6 Engineering Design Scoring
+S4.6.1 The team must present their vehicle according to S1.1 to score points in the engineering
+design event.
+S4.6.2 The overall engineering design event maximum scoring is 150 points.
+S4.6.3 The maximum scores listed in table 7 apply for the engineering design event.
+Category Points
+Overall Vehicle Concept 20
+Software 10
+Vehicle Performance 30
+Mechanical / Structural 15
+Tractive System / Powertrain 25
+LV-Electrics / Electronics 10
+Autonomous Functionality 20
+Driver Interface 10
+Engineering Design Report (EDR) 10
+Table 7: Maximum scores in engineering design event
+Category Points
+Overall Vehicle Concept 20
+Software / Compute 30
+Vehicle Performance 30
+Autonomous Functionality 70
+Table 8: [DC ONLY] Maximum scores in engineering design event
+
+  </pre></div>
+  <div id="D1" class="section-box"><h2 class="text-2xl font-bold">D1 – Dynamic Events</h2><pre>
+    D 1 DYNAMIC EVENTS GENERAL
+D1.1 Definitions
+D1.1.1 Starting – crossing the light barrier at the starting line starts a lap.
+D1.1.2 Finishing – crossing the light barrier at the finish line ends a lap. Can be the same as the
+starting line.
+D1.1.3 Lap – a complete trip on a defined track, beginning at the start line and ending at the finish
+line.
+D1.1.4 Run – a single attempt to compete in a dynamic event. Runs consist of one or more lap(s). A
+run is started when receiving a GREEN FLAG or the go-signal by the officials.
+D1.1.5 Did Not Finish (DNF) – starting a run without finishing it. For the purpose of scoring, a
+DNF is treated as a DQ.
+D1.1.6 Disqualified (DQ) – being removed from the scoring due to a rule violation.
+D1.1.7 Valid Run – a run that is neither DNF nor DQ.
+D1.1.8 Running Order – the sequence in which teams take part in a dynamic event. If not defined
+otherwise, the running order is queue based and teams on their first run receive priority.
+D1.1.9 To score points in any dynamic event, a team must have at least one valid run in that event.
+D1.2 Driver Limitations
+D1.2.1 In total, a minimum of three and a maximum of four drivers are allowed for each team.
+D1.2.2 An individual driver must not drive in more than two dynamic events.
+D1.2.3 The endurance and efficiency event is considered a single event.
+D1.2.4 An individual driver must not drive more than two runs in each dynamic event.
+D1.2.5 No more than two drivers are allowed to drive in each dynamic event.
+D1.3 Number of Runs in the Dynamic Events
+D1.3.1 Table 9 defines the number of runs for each dynamic event.
+
+Dynamic Event Manual Mode Autonomous Mode
+Acceleration 2 -
+DV Acceleration - 2
+Autocross 4 -
+[DC ONLY] DV Autocross - 2
+Endurance 1 -
+Skidpad 2 -
+DV Skidpad - 2
+[DC ONLY] Trackdrive - 1
+Table 9: Number of runs for each dynamic event
+D1.4 Dynamic Area and Dynamic Vests
+D1.4.1 The technical inspections and all dynamic events are held in the dynamic area.
+D1.4.2 Four dynamic vests are handed out to each team by the officials and must be worn in the
+dynamic area.
+D1.4.3 Only four members per team, including the driver, may enter the dynamic area at one time.
+D1.4.4 Drivers must not wear the dynamic vest when sitting in the vehicle. The driver’s vest must
+be attached to the pushbar.
+D1.4.5 The number of tools that may be used in this area is restricted to those which can be safely
+carried by the four team members in one trip.
+
+  </pre></div>
+
+</main>
+
+</body>
+</html>
