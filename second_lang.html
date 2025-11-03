@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="hu" class="dark">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>NFS GAMF Management</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+
+<style>
+  :root{
+    --accent:#ff5a00;
+    --bg-dark:#000;
+  }
+
+  /* HÁTTÉRKÉPEK RÖGZÍTETT URL-EK */
+  body{
+    background-color:var(--bg-dark);
+    color:#f2f2f2;
+    background-image:url("https://res.cloudinary.com/myblogki2024/image/upload/v1762162911/nfs_1_1_adlrov.jpg");
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center center;
+    background-attachment:fixed;
+    transition:0.5s;
+  }
+
+  html.light body{
+    background-image:url("https://res.cloudinary.com/myblogki2024/image/upload/v1762162911/nfs_1_1_adlrov.jpg ");
+    color:#000;
+  }
+
+  /* HERO JAVÍTÁS */
+  #heroOverlay{
+    position:fixed; inset:0; display:flex; justify-content:center; align-items:center;
+    background:rgba(0,0,0,0.6); z-index:100; backdrop-filter:blur(4px);
+  }
+  #heroCard{
+    width:min(90%,550px); border-radius:14px; overflow:hidden;
+    opacity:0; transform:scale(.92) translateY(20px);
+    animation:heroIn .5s forwards ease-out;
+  }
+
+  @keyframes heroIn{
+    to{opacity:1; transform:scale(1) translateY(0);}
+  }
+  @keyframes heroOut{
+    to{opacity:0; transform:scale(.88) translateY(-40px);}
+  }
+
+  /* LEBEGŐ NAVIGÁCIÓ (CSAK ASZTALI) */
+  #floatNav{
+    position:fixed; right:16px; bottom:18px; display:flex; flex-direction:column; gap:10px;
+    z-index:60;
+  }
+  .fn-btn{
+    background:var(--accent); color:#000; padding:8px 14px; font-weight:700;
+    border-radius:999px; box-shadow:0 6px 18px rgba(0,0,0,0.4);
+  }
+
+  @media(max-width:640px){
+    #floatNav{display:none;}
+  }
+
+  /* MOBIL MENÜ GOMB */
+  #mobileMenuBtn{
+    display:none;
+    position:fixed; right:16px; bottom:16px; z-index:70;
+    height:50px; width:50px;
+    border-radius:50%; background:var(--accent);
+    color:#000; font-size:22px; font-weight:900;
+    display:flex; justify-content:center; align-items:center;
+    box-shadow:0 8px 22px rgba(0,0,0,0.5);
+    transition:0.2s;
+  }
+  #mobileMenuBtn:active{ transform:scale(.9); }
+
+  @media(max-width:640px){
+    #mobileMenuBtn{display:flex;}
+  }
+
+  /* MOBIL FELCSUSZÓ MENÜ */
+  #mobileMenu{
+    position:fixed; left:0; right:0; bottom:-650px; height:650px;
+    background:#111; color:white; padding:20px; z-index:65;
+    border-radius:20px 20px 0 0;
+    transition:0.35s ease-out;
+  }
+  #mobileMenu.show{
+    bottom:0;
+  }
+  .mob-link{
+    display:block; padding:12px; border-bottom:1px solid #222;
+    font-size:18px; font-weight:600; color:var(--accent);
+  }
+
+  /* SZAKASZ DOBOZOK */
+  .section-box{
+    background:rgba(0,0,0,0.55);
+    padding:20px; border-radius:16px; backdrop-filter:blur(6px);
+    border:1px solid rgba(255,255,255,0.07);
+    margin-bottom:40px;
+  }
+  html.light .section-box{
+    background:rgba(255,255,255,0.85);
+    border:1px solid rgba(0,0,0,0.1);
+  }
+  pre, code {
+    white-space: pre-wrap;
+    word-break: break-word;
+    overflow-wrap: break-word;
+  }
+</style>
+</head>
+
+<body>
+
+<!-- HERO -->
+<div id="heroOverlay">
+  <div id="heroCard">
+    <img src="https://scontent-vie1-1.xx.fbcdn.net/v/t39.30808-6/490313303_1450119786339724_3455413286331615443_n.jpg?_nc_cat=111&ccb=1-7&_nc_sid=cc71e4&_nc_ohc=oexM5KbcC0QQ7kNvwE9PEms&_nc_oc=AdmuSkL_gRgWbQAedi_pS6Lo5I0PFqoK6Ax3S-sksmO-PUf3CP536yHuGynN1s6So-MbIfxHVQHjaSHFZrXQPPPx&_nc_zt=23&_nc_ht=scontent-vie1-1.xx&_nc_gid=1Aa3KR2GgeY_3LNFRa_YPA&oh=00_AfieL5i59cfRhAT9Axv2bI3UA5mZgGDH5uW2VDnhwlrCgg&oe=690CEBD3"
+    style="width:100%; display:block;">
+  </div>
+</div>
+
+<script>
+  setTimeout(()=>{
+    let card=document.getElementById("heroCard");
+    let ov=document.getElementById("heroOverlay");
+    card.style.animation="heroOut .6s forwards";
+    setTimeout(()=>ov.remove(),550);
+  },1000);
+</script>
+
+<!-- FEJLÉC -->
+<header class="sticky top-0 z-40 backdrop-blur bg-black/40 text-white px-4 py-3 flex justify-between">
+  <div class="flex items-center gap-3">
+    <div style="background:var(--accent)" class="w-10 h-10 rounded-full flex items-center justify-center font-bold text-black">FS</div>
+    <div>
+      <div class="font-semibold text-lg">Formula Student Szabályok</div>
+      <div class="opacity-70 text-sm">Management ZH</div>
+    </div>
+  </div>
+
+  <div class="flex gap-2">
+    <!-- Világos mód gomb -->
+    <button id="modeToggle" class="px-3 py-2 rounded-md bg-white/10">
+      Világos mód
+    </button>
+
+    <!-- EN gomb -->
+    <button onclick="location.href='index.html'" class="px-3 py-2 rounded-md bg-white/10 hover:bg-white/20 transition">
+      EN
+    </button>
+  </div>
+</header>
+
+
+<script>
+document.getElementById('modeToggle').onclick=function(){
+  let html=document.documentElement;
+  html.classList.toggle("light");
+  this.textContent=html.classList.contains("light")?"Sötét mód":"Világos mód";
+}
+</script>
+
+<!-- ASZTALI LEBEGŐ NAVIGÁCIÓ -->
+<nav id="floatNav" class="fixed right-4 flex flex-col gap-2 z-50" style="top:150px;">
+  <a class="fn-btn bg-orange-600 hover:bg-orange-500 text-white px-3 py-1 rounded text-sm text-center" href="#A1_3">A1.3</a>
+  <a class="fn-btn bg-orange-600 hover:bg-orange-500 text-white px-3 py-1 rounded text-sm text-center" href="#A5">A5</a>
+  <a class="fn-btn bg-orange-600 hover:bg-orange-500 text-white px-3 py-1 rounded text-sm text-center" href="#T12_3">T12.3</a>
+  <a class="fn-btn bg-orange-600 hover:bg-orange-500 text-white px-3 py-1 rounded text-sm text-center" href="#T13_12">T13</a>
+  <a class="fn-btn bg-orange-600 hover:bg-orange-500 text-white px-3 py-1 rounded text-sm text-center" href="#IN1">IN1</a>
+  <a class="fn-btn bg-orange-600 hover:bg-orange-500 text-white px-3 py-1 rounded text-sm text-center" href="#IN12">IN1.2</a>
+  <a class="fn-btn bg-orange-600 hover:bg-orange-500 text-white px-3 py-1 rounded text-sm text-center" href="#IN13">IN1.3</a>
+  <a class="fn-btn bg-orange-600 hover:bg-orange-500 text-white px-3 py-1 rounded text-sm text-center" href="#S">S</a>
+  <a class="fn-btn bg-orange-600 hover:bg-orange-500 text-white px-3 py-1 rounded text-sm text-center" href="#D1">D1</a>
+</nav>
+
+<!-- MOBIL MENÜ GOMB -->
+<div id="mobileMenuBtn">≡</div>
+
+<!-- MOBIL MENÜ -->
+<div id="mobileMenu">
+  <a class="mob-link" href="#A1_3">A1.3</a>
+  <a class="mob-link" href="#A5">A5</a>
+  <a class="mob-link" href="#T12_3">T12.3</a>
+  <a class="mob-link" href="#T13_12">T13</a>
+  <a class="mob-link" href="#IN1">IN1</a>
+  <a class="mob-link" href="#IN12">IN1.2</a>
+  <a class="mob-link" href="#IN13">IN1.3</a>
+  <a class="mob-link" href="#S">S</a>
+  <a class="mob-link" href="#D1">D1</a>
+</div>
+
+<script>
+document.getElementById("mobileMenuBtn").onclick=function(){
+  document.getElementById("mobileMenu").classList.toggle("show");
+}
+</script>
+
+<!-- FŐ TARTALOM -->
+<main class="max-w-5xl mx-auto mt-8 px-6 sm:px-8 lg:px-12 pb-24">
+
+  <div id="A1_3" class="section-box"><h2 class="text-2xl font-bold">A1.3</h2><pre>
+A1.3 Verseny Információk
+A1.3.1 A versenyspecifikus szabályokat és információkat a verseny kézikönyve határozza meg.
+A1.3.2 A verseny hivatalos nyelve az angol.
+A1.3.3 Ennek a dokumentumnak megfelelő verseny szervezője egyedül felelős.
+Formula Student Szabályok 2025 Verzió: 1.1 9/133
+A2 Jármű Alkalmasság
+CV & EV DC
+<table border="1">
+  <tr>
+    <th>Esemény</th>
+    <th>Hagyományos</th>
+    <th>Driverless (DV)</th>
+  </tr>
+  <tr><td colspan="3"><strong>Statikus Események</strong></td></tr>
+  <tr><td>Üzleti Terv Bemutató</td><td>75</td><td>-</td></tr>
+  <tr><td>Költség és Gyártás</td><td>100</td><td>-</td></tr>
+  <tr><td>Mérnöki Tervezés</td><td>150</td><td>150</td></tr>
+
+  <tr><td colspan="3"><strong>Dinamikus Események</strong></td></tr>
+  <tr><td>Skidpad</td><td>50</td><td>-</td></tr>
+  <tr><td>Driverless (DV) Skidpad</td><td>-</td><td>75</td></tr>
+  <tr><td>Gyorsulás</td><td>50</td><td>-</td></tr>
+  <tr><td>Driverless (DV) Gyorsulás</td><td>-</td><td>75</td></tr>
+  <tr><td>Autocross</td><td>100</td><td>-</td></tr>
+  <tr><td>Driverless (DV) Autocross</td><td>-</td><td>100</td></tr>
+  <tr><td>Endurance</td><td>250</td><td>-</td></tr>
+  <tr><td>Hatékonyság</td><td>75</td><td>-</td></tr>
+  <tr><td>Trackdrive</td><td>-</td><td>200</td></tr>
+
+  <tr><td><strong>Összesen</strong></td><td><strong>1000</strong></td><td><strong>600</strong></td></tr>
+</table>
+
+3. táblázat: Maximális pontok
+</pre></div>
+
+  <div id="A5" class="section-box"><h2 class="text-2xl font-bold">A5</h2><pre>
+A 5 DOKUMENTÁCIÓ & HATÁRIDŐK
+A5.1 Szükséges Dokumentumok és Űrlapok
+A5.1.1 Számos dokumentumot és űrlapot kell benyújtani a verseny kézikönyvében meghatározott határidőkig.
+A5.2 Benyújtás
+A5.2.1 A benyújtott dokumentumokat csak a benyújtó csapat tagjai, az engedélyezett bírák és hivatalnokok tekinthetik meg.
+A5.2.2 A dokumentumok verseny weboldalon keresztüli benyújtásával a csapat hozzájárul, hogy a hivatalnokok teljes és szerkesztett változatban reprodukálják és terjeszthetik azokat oktatási célból.
+A5.2.3 A nagyrészt hiányos vagy olvashatatlan/nem megtekinthető dokumentumokat vagy videókat nem benyújtottnak tekintjük.
+A5.3 Javítási Kérelmek
+A5.3.1 Ha a hivatalnokok javítást kérnek egy dokumentumra, a javított változatot a kérés után 168 órán (7 napon) belül kell benyújtani.
+A5.3.2 A kezdeti határidő előtt kért javításokat úgy kezeljük, mintha a kezdeti határidőn kérték volna.
+A5.3.3 Az egyik dokumentumon vagy űrlapon belüli különböző részekre vonatkozó külön kéréseket függetlenül kezeljük.
+A5.3.4 Ha a dokumentum javított változata nem tartalmazza teljesen az összes kért javítást, a csapatot kizárják a versenyből.
+Formula Student Szabályok 2025 Verzió: 1.1 14/133
+A5 Dokumentáció & Határidők
+A5.4 Késői benyújtás vagy nem benyújtás
+A5.4.1 Minden, a megfelelő határidőnél későbbi benyújtásért 10 büntetőpontot vonnak le a csapat összpontszámából.
+A5.4.2 Azok a csapatok, amelyek a megfelelő határidő után 24 órával (1 nappal) sem nyújtják be a dokumentumokat, kizárásra kerülnek a versenyből.
+A5.5 Kizárás
+A5.5.1 A versenyből kizárt csapatnak egyetlen esélye van a várólistára jelentkezni.
+A5.5.2 A jelentkezéshez a csapatnak a kizárási értesítés után 24 órán belül kell teljesítenie a következőket:
+• Informális jelentkezés benyújtása a hivatalnokoknak
+• A kizárás okának kijavítása (pl. dokumentum benyújtása)
+A5.5.3 Ha a hivatalnokok pozitívan megerősítik a jelentkezést, a csapat:
+• A várólista végére kerül.
+• 20 büntetőpontot kap.
+A5.5.4 A jelentkezéseket elutasítják, ha az átalakítás nem megfelelő, vagy a kizárást a csapat helytelen magatartása okozta.
+A5.6 Jármű Állapot Videó
+A5.6.1 Minden csapatnak benyújtania kell egy videót, amely a járművet kézi üzemmódban vezetve mutatja be a verseny előtt. A videót a verseny kézikönyvében meghatározott határidő előtt kell benyújtani.
+A5.6.2 [CSAK DC] A járműnek autonóm üzemmódban kell helyette haladnia. Nincs szükség kézi üzemmódú VSV-ra.
+A5.6.3 A videónak a leírt sorrendben kell megmutatnia a következő szekvenciákat:
+• Álló helyzet
+• 360◦ videó a jármű körül (közelről, átfedhet a következő két ponttal)
+• [CSAK CV] Motor indítása / [CSAK EV] TS aktiválása
+• Egyenes vezetés, minimális távolság 30 m, minimális sebesség 10 km/h kézi üzemmódban
+• Teljes megállás (nem szükséges az autonóm üzemmódú VSV-hoz)
+• 180◦ kanyarodás
+• Egyenes vezetés vissza a kiindulási ponthoz, minimális sebesség 10 km/h kézi üzemmódban
+• [CSAK DC] A VSV végén a járművet vészfékezési manőverrel kell megállítani, lásd T15.
+Formula Student Szabályok 2025 Verzió: 1.1 15/133
+A5 Dokumentáció & Határidők
+• Álló helyzet, [CSAK CV] motor leállítva / [CSAK EV] TS deaktiválva
+A5.6.4 A videónak meg kell felelnie a következő kritériumoknak:
+• Folyamatos videó harmadik személy nézetből - nem összeállított szekvenciák
+• A járműnek jól láthatónak kell lennie (fény, videó felbontás, fekvő tájolás, képkockák és frekvencia)
+• A járműnek saját erőből kell haladnia
+• A vezetésnek követnie kell az A6.3.4-et
+• A járművet versenykész állapotban kell bemutatni, beleértve a karosszériát
+• Nincs átkelés a jármű előtt [CSAK EV] TS aktiválása / [CSAK CV] motor indítása után
+• [CSAK EV] Tractive System Active Light (TSAL), [CSAK DC] Autonomous System Status Indicator (ASSI) és a féklámpának jól láthatónak kell lennie a videóban
+• [CSAK EV] A Ready-to-drive (R2D) hangnak hallhatónak kell lennie a videóban
+• [CSAK DC] A harmadik személy nézet mellett, fedélzeti nézet és a jármű környezetérzékelésének és útvonaltervezésének vizualizációja kell megjelennie osztott képernyőn. Minden résznek időben szinkronizáltnak kell lennie.
+• Nem haladhatja meg a 60 másodperc hosszúságot.
+A5.6.5 Ha egy csapat csak a [CSAK DC] részt rontja el, akkor csak a DC-ből zárják ki.
+A5.6.6 Az a csapat, amelyik előző évi járművel tölt fel VSV-t, kizárásra kerül a versenyből.
+A5.7 SES Jóváhagyás
+A5.7.1 A monocoque-t használó csapatoknak egy dokumentumban kell benyújtaniuk a SESA-t, az SES határidőn felül. A SESA sablon a verseny weboldalán lesz elérhető.
+A5.7.2 A Structural Equivalency Spreadsheet (SES)-t megfelelő szakértelemmel rendelkező végzett mérnöknek kell ellenőriznie és jóváhagynia.
+A5.7.3 Miután az SES-t jóváhagyták, ki kell tölteni, aláírni és benyújtani a SESA űrlapot a SESA határidőig.
+A5.7.4 Ha a jóváhagyási folyamat miatt szükségessé válnak az eredeti SES változtatásai, a frissített, végső SES-t újra be kell nyújtani a verseny weboldalán.
+A5.7.5 Az összes, az SES űrlap "Verziótörténet" lapján végzett változtatás részleteit tartalmazó változásnaplót csatolni kell a SESA dokumentumhoz, és az SES felülvizsgálónak is alá kell írnia.
+A5.7.6 A hivatalnokok véletlenszerűen ellenőrzik a benyújtott SESA-kat a hozzájuk tartozó benyújtott SES-ekkel.
+  </pre></div>
+
+  <div id="T12_3" class="section-box"><h2 class="text-2xl font-bold">T12.3</h2><pre>
+T12.3 Egyetem Neve
+T12.3.1 Az egyetem nevének teljes egészében ki kell írni. Csak a következő rövidítések megengedettek az egyetem nevében, ha a városnév teljes egészében ki van írva:
+• University → Uni
+• Technical University → TU
+• University of Applied Sciences → UAS
+• Berufsakademie → BA
+• Ha az egyetem hivatalosan rövidítést használ a saját nevében, ez a rövidítés megengedett.
+T12.3.2 Az egyetem nevét ki kell írni és római betűkkel, legalább 50 mm magas betűkkel kell feltüntetni a jármű mindkét oldalán.
+T12.3.3 A betűknek távolról is jól láthatóknak kell lenniük, és nagy kontrasztú háttérre kell helyezni őket.
+  </pre></div>
+
+  <div id="T13_12" class="section-box"><h2 class="text-2xl font-bold">T13.1 Tolórúd</h2><pre>
+T13.1.2 A tolórúdnak piros színűnek kell lennie.
+T13.1.3 Az egyetem nevét a tolórúdon kell feltüntetni. A betűknek jól láthatóknak kell lenniük, és nagy kontrasztú háttérre kell helyezni őket.
+  </pre></div>
+
+  <div id="T13.2 Jacks" class="section-box"><h2 class="text-2xl font-bold">T13.2 Emelők</h2><pre>
+T13.2.4 A jármű mindkét oldalán az eszközök felvételi pontjait narancssárga háromszögekkel kell jelölni.
+T13.2.5 Az egyetem nevét az emelőkre kell írni. A betűknek jól láthatóknak kell lenniük, és nagy kontrasztú háttérre kell helyezni őket.
+  </pre></div>
+
+  <div id="IN1" class="section-box"><h2 class="text-2xl font-bold">IN1</h2><pre>
+IN 1 ÁLTALÁNOS
+IN1.1 Műszaki Ellenőrzési Folyamat
+IN1.1.1 A műszaki ellenőrzés a következő részekre oszlik:
+• Előellenőrzés
+• [CSAK EV] Akkumulátor Ellenőrzés
+• [CSAK EV] Elektromos Ellenőrzés
+• Mechanikai Ellenőrzés
+• Autonóm Rendszer Ellenőrzés
+• Billenő Teszt
+• Jármű Súlymérése
+• [CSAK CV] Zajteszt
+• [CSAK EV] Esőteszt
+• Fékteszt
+• EBS Teszt
+  </pre></div>
+
+  <div id="IN12" class="section-box"><h2 class="text-2xl font-bold">IN1.2</h2><pre>
+IN1.2 Általános Szabályok
+IN1.2.1 Minden járműnek át kell mennie a műszaki ellenőrzés minden részén, kivéve az Autonóm Rendszer Ellenőrzést és az EBS Tesztet, mielőtt bármely dinamikus eseményen részt vehetne.
+IN1.2.2 Minden járműnek át kell mennie az Autonóm Rendszer Ellenőrzésen és az EBS Teszten, mielőtt bármely Driverless (DV) dinamikus eseményen részt vehetne.
+IN1.2.3 A műszaki ellenőrzésen való átmenés nem minősül a jármű teljes szabálymegfelelőségének tanúsítására.
+IN1.2.4 A műszaki ellenőrzési lap több ellenőrzési pontot tartalmaz, és a verseny előtt a verseny weboldalán lesz elérhető. Mindig a tolórúddal kell tartani.
+IN1.2.5 A hivatalnokok ellenőrizhetnek más, a műszaki ellenőrzési lapon nem említett pontokat is, hogy biztosítsák a szabályoknak való megfelelést.
+IN1.2.6 A csapatok felelőssége megerősíteni, hogy járművük és a szükséges felszerelés megfelel a szabályok követelményeinek és korlátozásainak, mielőtt bemutatnák műszaki ellenőrzésre.
+IN1.2.7 A járműveket versenykész állapotban kell bemutatni a műszaki ellenőrzésre.
+
+IN1.2.8 A biztonsági szempontból nem kritikus szabálysértések, amelyek nem járnak előnnyel a csapat számára, és nem változtathatók meg az eseményen, legalább 20 büntetőpontot eredményezhetnek a csapatok számára, a hivatalnokok döntése alapján. A biztonsági szempontból nem kritikus, kisebb előnnyel járó szabálysértések, amelyek nem változtathatók meg az eseményen, legalább 40 büntetőpontot eredményezhetnek a csapat számára. A büntetőpontokat a csapat összpontszámából vonják le.
+IN1.2.9 Az ellenőrzési lapon szereplő összes tételnek jól láthatónak kell lennie a hivatalnokok számára olyan eszközök, mint endoszkópok vagy tükrök használata nélkül. Látható hozzáférés biztosítható karosszéria panelek eltávolításával vagy eltávolítható hozzáférési panelek biztosításával.
+IN1.2.10 A járműnek meg kell őriznie az összes szükséges specifikációt a verseny során.
+IN1.2.11 A hivatalnokok fenntartják a jogot, hogy további ellenőrző lyukak fúrását kérik a csapattól a váz szabályoknak való megfelelőségének ellenőrzésére.
+IN1.2.12 A hivatalnokok különböző jóváhagyott alkatrészeket megjelölnek vagy lezárnak. A pecsétek eltávolítása vagy megsérülése érvényteleníti az ellenőrzési jóváhagyást.
+IN1.2.13 Miután a járművet versenyre jóváhagyták, a járművet ért károk, amelyek javítást igényelnek, érvénytelenítik az ellenőrzési jóváhagyást. A javítás(ok) befejezése után a járművet újra be kell nyújtani a műszaki ellenőrzésre az újrajóváhagyáshoz.
+IN1.2.14 A hivatalnokok fenntartják a jogot, hogy megtiltják az olyan alkatrészek használatát, amelyek biztonsági kockázatot jelenthetnek a versenyzők, pálya felügyelők vagy a környezet számára.
+  </pre></div>
+
+  <div id="IN13" class="section-box"><h2 class="text-2xl font-bold">IN1.3</h2><pre>
+IN1.3 Műszaki Ellenőrzési Matrica
+
+IN1.3.1 A verseny műszaki ellenőrzési matricáit a jármű orrára helyezik.
+IN1.3.2 Ha egy jármű már nem felel meg a szabályoknak, a hivatalnokok a jármű műszaki ellenőrzési állapotát sikertelenre állítják, eltávolítják a megfelelő ellenőrzési matricá(ka)t a járműről, és feljegyzik a műszaki ellenőrzési jóváhagyás visszavonásának okát a műszaki ellenőrzési lapon.
+  </pre></div>
+
+  <div id="S" class="section-box"><h2 class="text-2xl font-bold">S – Statikus Események</h2><pre>
+    S 1 ÁLTALÁNOS SZABÁLYOK
+S1.1 Jármű Állapota
+S1.1.1 A járműveket befejezett állapotban, teljesen összeszerelt, komplett és versenykész állapotban kell bemutatni a zsűrizésre.
+S1.1.2 A zsűritagok nem értékelnek olyan járművet, amelyet befejezetlen állapotban mutatnak be.
+S1.1.3 A járművek bemutathatók zsűrizésre anélkül, hogy átmentek volna a műszaki ellenőrzésen, még akkor is, ha a végső beállítás és beállítás folyamatban van.
+S1.1.4 A zsűrizés során a burkolatok és/vagy alkatrészek eltávolíthatók a komponensek vagy koncepciók hozzáférésének és bemutatásának megkönnyítése érdekében.
+S 2 ÜZLETI TERV BEMUTATÓ ESEMÉNY
+S2.1 Üzleti Terv Bemutató Célja
+S2.1.1 A BPP célja a csapat képességének felmérése egy átfogó üzleti modell kifejlesztésére és bemutatására. Ennek az üzleti modellnek egy olyan terméket vagy szolgáltatást kell kínálnia, amely a csapat specifikus prototípus járművére vagy annak egy specifikus komponensére alapul, egy jutalmazó üzleti lehetőséget biztosítva, amely pénzügyi hasznot teremt. A járműnek vagy komponensnek az értékajánlat lényeges részét kell képeznie.
+S2.1.2 A zsűritagokkal úgy kell bánni, mintha a bemutatott üzleti modell potenciális befektetői vagy partnerei lennének.
+S2.1.3 A tényleges prototípus minőségét nem veszik figyelembe a BPP zsűrizés részeként, ezért az S1.1 nem alkalmazható.
+S2.2 Üzleti Terv Bemutató Eljárás
+S2.2.1 A bemutatók maximum 10 percre korlátozódnak. A zsűri megállít minden 10 percet meghaladó bemutatót.
+S2.2.2 A bemutatót nem szakítják meg kérdések. Közvetlenül a bemutató után lesz egy kérdés-felelet rész.
+S2.2.3 Egy vagy több csapattag mutathja be az üzleti tervet.
+
+S2.2.4 A BPP-ben részt vevő összes csapattagnak a pódium területén kell lennie, és be kell mutatni őket a zsűritagoknak a bemutató elején. A bemutatott csapattagok válaszolhatnak a zsűritagok kérdéseire, még akkor is, ha valójában nem ők mutatták be.
+S2.2.5 Azok a csapatok, amelyek nem tartják meg bemutatójukat a kijelölt időszakban, null pontot kapnak a BPP-re.
+S2.2.6 A verseny előtt egy specifikus mélyebb témakör kerül közzétételre a verseny weboldalán, amelynek részét kell képeznie a 10 perces bemutatónak.
+S2.3 Pitch Videó
+S2.3.1 Annak érdekében, hogy meggyőzzék a potenciális befektetőket vagy partnereket arról, hogy a csapat bemutatása megérdemli az idejüket, kötelező egy Üzleti Terv Pitch Videót (BPPV) benyújtani a verseny előtt. A pitch videót az üzleti ötlet első benyomásaként kell tekinteni, és tartalmaznia kell a releváns befektetési adatokat.
+S2.3.2 A BPPV-t online kell benyújtani a verseny weboldalán keresztül, legkésőbb a verseny kézikönyvében meghatározott határidőig.
+S2.3.3 A BPPV hossza nem haladhatja meg a 30 másodpercet, és közös videóformátumban kell lennie, pl. avi, mpg, mp4, wmv.
+S2.4 Üzleti Terv Bemutató Pontozása
+S2.4.1 A BPP-t a 6. táblázatban meghatározott kategóriák alapján értékelik.
+Kategória Pontok
+Pitch Videó 10
+Tartalom 20
+Pénzügyek 10
+Mélyebb Témakör 10
+Bemutató és Szerkezet 15
+Előadás 10
+Kérdések 10
+Általános Benyomás 15
+Összesen 100
+6. táblázat: BPP értékelési kategóriák
+S2.4.2 Ha a bemutatott üzleti modell nem kapcsolódik az S2.1.1-ben felsorolt területek egyikéhez sem, 15 büntetőpontot vonnak le a csapat BPP pontozásából.
+S2.4.3 A versenyen a zsűrizés kezdeti zsűrizéssel kezdődik, ahol minden csapatot különböző zsűricsoportok zsűriznek.
+S2.4.4 Néhány csapatot kiválaszthatnak a BPP döntő részvételére a BPP győztesének meghatározására. A BPP döntőt külön tartják a kezdeti zsűrizéstől, és a csapatokat az esemény során tájékoztatják a részvételükről.
+S2.4.5 A BPP pontozása az egyes zsűritagok által adott pontszámok átlagán alapul.
+
+S2.4.6 A nem döntősök pontszámát a következőképpen számítják ki:
+BPP_SCORE = 70 * (Pcsapat / Pmax)
+Pcsapat a csapatnak ítélt pontszám
+Pmax a legmagasabb pontszám, amelyet bármely, a döntőben nem részt vevő csapat kapott
+S2.4.7 A BPP döntősök pontszáma 75 és 71 pont között változik, és az összes zsűritag azonnal pontozza a BPP döntő után.
+S 3 KÖLTSÉG ÉS GYÁRTÁS ESEMÉNY
+S3.1 Költség és Gyártás Célja
+S3.1.1 A költség és gyártás esemény célja a csapat megértésének felmérése a prototípus jármű építéséhez kapcsolódó gyártási folyamatokról, költségekről és üvegházhatású gáz kibocsátásokról. Ez magában foglalja a tartalom és költség közötti kompromisszum döntéseket, a gyártás vagy vásárlás döntéseket, valamint a prototípus és a tömeggyártás közötti különbségek megértését.
+S3.2 Költség és Gyártás Eljárás
+S3.2.1 A verseny előtt három Költség Jelentés Dokumentumot (CRD), lásd S3.3, kell benyújtani a verseny weboldalára a verseny kézikönyvében meghatározott határidőig.
+S3.2.2 A verseny során a zsűritagokkal folytatott vita zajlik a csapat járműve mellett. A vita három részre oszlik:
+S3.2.3 1. rész "Anyagjegyzék (BOM) Vita":
+Egy vita a csapat képességének felmérésére, hogy pontos mérnöki és gyártási BOM-ot készítsen a teljes járműhöz. A csapatnak bizonyítania kell a következőket:
+• A jármű specifikációja a CRD-ben pontosan tükrözi a versenyre hozott járművet.
+• A BOM Költségre és Szén-dioxid-kibocsátásra vonatkozó részében (CCBOM) szereplő költségek és kibocsátások helyesek és reálisak.
+• A jármű gyárthatósága.
+S3.2.4 2. rész "Költség Megértés":
+Egy vita a csapat általános költség- és gyártási ismereteinek felmérésére.
+S3.2.5 3. rész "Valós Eset":
+Egy specifikus feladat a költség- és gyártási ismeretek felmérésére egy bizonyos területen. A valós eset feladatot a verseny előtt közzéteszik a verseny weboldalán.
+S3.2.6 A csapatoknak a kijelölt időpontban kell bemutatniuk járművüket a zsűritagoknak. Azok a csapatok, akik kihagyják az időpontjukat, 0 pontot kapnak.
+S3.2.7 A csapatok számára megengedett elektronikus, kézzel írt vagy nyomtatott kiszolgáló anyagok, flip chartok vagy hasonlók elhozása az eseményre, de a rendelkezésre álló hely korlátozott lehet.
+
+S3.3 Költség Jelentés Dokumentumok
+S3.3.1 A CRD a következő dokumentumokból áll:
+• A BOM, beleértve a CCBOM-ot, amely online jön létre és kerül benyújtásra a verseny weboldalán
+• A támogató anyag fájl, amely pdf fájlként kerül benyújtásra a verseny weboldalára
+• A költség- és kibocsátás magyarázat fájl, amely pdf fájlként kerül benyújtásra a verseny weboldalára
+S3.3.2 A CRD benyújtási határideje óta a járművön végrehajtott változtatások változásnaplója bemutatható a zsűritagoknak a BOM vita során. A BOM hiányzó részei nem lehetnek részei a változásnaplónak.
+S3.3.3 Az összes CRD-t ki kell nyomtatni vagy digitális verzióban el kell hozni az esemény vitára.
+S3.3.4 A weboldal eszköz nyomtatható pdf verziót biztosít a BOM-hoz.
+S3.3.5 A csapatnak biztosítania kell, hogy legalább két zsűritag függetlenül felülvizsgálhassa a CRD-t.
+S3.3.6 A bemutatott CRD-nek azonosnak kell lennie a benyújtott verziókkal, különben 0 pontot kapnak a "BOM Vita" részre.
+S3.4 Anyagjegyzék
+S3.4.1 A BOM az összes járműalkatrész rendezett listája.
+S3.4.2 A BOM a következőképpen szerkezetett:
+• A BOM "rendszerekre" bomlik, lásd S3.4.7.
+• Minden "rendszer" "összeszerelésekre" bomlik, amelyeket a weboldal eszköz határoz meg.
+• Minden "összeszerelés" opcionálisan "részösszeszerelésekre" bontható, amelyeket a csapatnak kell meghatároznia.
+• Minden "összeszerelés" vagy "részösszeszerelés" "alkatrészekre" bomlik, amelyeket a csapatnak kell meghatároznia.
+S3.4.3 A BOM-nak felsorolnia kell a prototípus járműre a verseny során bármikor felszerelt összes alkatrészt.
+S3.4.4 Csak a száraz gumik és kerekek a T2.7.1 szerint kell szerepeljenek a BOM-ban.
+S3.4.5 A "rögzítőelemek" további elemek, amelyek szükségesek egy "alkatrész" vagy "(rész)összeszerelés" összeszereléséhez, és nem szabad felsorolni őket (pl. DIN-931 hatszög csavar, ragasztó, szalag, kötőzsinór, ...).
+S3.4.6 Egy öngyártott "rögzítőelem" "alkatrésznek" minősül.
+S3.4.7 A "rendszerek" a következők:
+• Autonóm Rendszer
+• Fékrendszer
+• Váz és Karosszéria
+• Hajtómű
+• Motor és Vonórendszer
+• Földelt Alacsony Feszültségű Rendszer
+• Egyéb, Beépítés és Befejezés
+• Kormányrendszer
+• Felfüggesztési Rendszer
+• Kerekek, Kerékcsapágyak és Gumik
+S3.4.8 Amikor "alkatrészeket" adnak a BOM-hoz, alaposan át kell vizsgálni a megjegyzések szakaszt. A választott alkatrésznévnek egyértelműen le kell írnia, hogy mit tartalmaz. Például, ha egy rugó szerepel, az "alkatrész" neve ne legyen "lengéscsillapító".
+S3.4.9 Csak metrikus egységek használhatók a BOM-on belül.
+S3.5 Költségre és Szén-dioxid-kibocsátásra vonatkozó Anyagjegyzék
+S3.5.1 A BOM egy vagy két rendszerének összes alkatrészének gyártási és összeszerelési folyamatait, tényleges költségeit és üvegházhatású gáz kibocsátásait kell felsorolni a CCBOM-ban.
+S3.5.2 2025-re a "Kormányrendszer" CCBOM-ját kell benyújtani.
+S3.5.3 A BOM-hoz képest a CCBOM-nak a következőket kell tartalmaznia:
+• Az egyes alkatrészek tényleges gyártási folyamatait, ahogyan azokat a prototípus járműhöz használták.
+• Szerszámokat (pl. hegesztő szerelőállványok, formák, minták és szerszámok).
+• Az egyes alkatrészek anyagok, gyártás, vásárolt alkatrészek és összeszerelés tényleges költségeit, ahogyan azokat a prototípus járműhöz használták.
+• A rendszer szénlábnyomát az egyes alkatrészek, gyártási és összeszerelési folyamatok esetében a prototípus járműhöz Szén-dioxid Egyenértékben (CO2e).
+S3.5.4 Egy "összeszerelés" minden alkotó "alkatrészét" "vásároltnak" vagy "készítettnek" kell besorolni.
+S3.5.5 A BOM szerkezetéhez képest a CCBOM-ban minden "alkatrész" a következőkre bomlik:
+• felhasznált "anyagok" (pl. alumínium)
+• a gyártáshoz szükséges lépéseket leíró "folyamatok"
+• az alkatrész összeszereléséhez használt "rögzítőelemek" (ha alkalmazható)
+• a gyártáshoz szükséges "szerszámok" (ha alkalmazható)
+• "rezsiköltség" az alkatrész gyártásának és összeszerelésének további kapcsolódó költségeire és kibocsátásaira, amelyeket a fenti pontok nem fednek le
+S3.5.6 A "szerszámok" azok a szükséges eszközök, amelyeket az "anyag" kívánt alakúvá alakításához használnak. Ha a gyártási szerszámok olyan folyamatokhoz kapcsolódnak, amelyek specifikusak az alkatrész geometriájához, akkor azokat be kell vonni. Például a váz tartó kiszúrásához használt szerszámok szerszámok.
+S3.5.7 A kézi vagy elektromos szerszámokat nem szabad belefoglalni.
+
+S3.5.8 A "vásárolt alkatrészek" esetében csak a rögzítőelemeket kell belefoglalni (ha alkalmazható). Ha az alkatrészt módosították, a módosításhoz kapcsolódó "folyamatokat" és "szerszámokat" (ha alkalmazható) is be kell vonni.
+S3.5.9 Csak azok az alkatrészek jelölhetők "vásárolt alkatrészeknek", amelyek katalógusból vásárolhatók.
+S3.5.10 A költségszámításokat a lehető legreálisabban kell elvégezni, és ki kell zárni a kutatást, fejlesztést és tőke kiadásokat ingatlanokra (pl. csapat üzemórái vagy fejlesztési órái).
+S3.5.11 Minden költséget EUR-ban kell megjeleníteni. Az EUR-ba való átszámításhoz más valutákból a csapatnak meg kell adnia a használt árfolyamokat.
+S3.5.12 Nincs maximális költség. Bármely tételhez nem szükségesek nyugták.
+S3.5.13 Meg kell mutatni a gépi óradíjak, bérek (beleértve a rezsiköltségeket) stb. számításait.
+S3.5.14 A "szénlábnyomot" CO2e-ben kell kiszámítani a kiválasztott "rendszer(ek)" "Bölcsőtől a Kapuig" Életciklus Értékelése (LCA) alapján.
+S3.5.15 A "Bölcsőtől a Kapuig" elemzés magában foglalja a szükséges nyersanyagok kitermelését, a "készített alkatrészek", "részösszeszerelések" és "összeszerelések" gyártását, valamint a "rendszer" gyártását (készen a végső prototípus járműbe szerelésre).
+S3.5.16 A "vásárolt alkatrészek" esetében csak a módosítások "szénlábnyomát" kell belefoglalni.
+S3.5.17 A lépések közötti szállítás "szénlábnyomát" be kell vonni.
+S3.5.18 A "szénlábnyom" nem tartalmazhatja a kutatást és fejlesztést.
+S3.6 Támogató Anyag Fájl
+S3.6.1 A támogató anyag fájl egy olyan dokumentum, amely további információkat tartalmaz, amelyek lehetővé teszik a zsűritagok számára a BOM megértését. Tartalmaznia kell rajzokat, szétszerelt nézeti rajzokat és/vagy képeket a járműről és a BOM-ban szereplő alkatrészekről.
+S3.7 Költség és Kibocsátás Magyarázat Fájl
+S3.7.1 A költség és kibocsátás magyarázat fájl egy olyan dokumentum, amely lehetővé teszi a zsűritagok számára a BOM CCBOM részében szereplő költségek és üvegházhatású gáz kibocsátások megértését.
+S3.7.2 Ki kell emelni a használt költségmodellt, különösen, hogy mely specifikus költségek szerepelnek, pl. gépüzemeltetési költségek.
+S3.7.3 A Globális Felmelegedési Potenciál (GWP) CO2e-ben való meghatározásához használt módszertant is el kell magyarázni. Be kell vonni az egyes anyagtípusokhoz társított specifikus szénkibocsátási tényezőket is.
+S3.8 Költség és Gyártás Pontozása
+S3.8.1 A csapatnak az S1.1 szerint kell bemutatnia járművét a költség- és gyártási eseményben való pontszerzéshez.
+
+S3.8.2 A költség- és gyártási eseményt a következő táblázatban meghatározott kategóriák alapján értékelik:
+Kategória Pontok
+1. rész "BOM Vita" 50
+2. rész "Költség Megértés" 25
+3. rész "Valós Eset" 25
+Összesen 100
+S3.8.3 Ha elemek hiányoznak a BOM-ból, pontokat vonnak le, amíg 0 pontot nem kapnak a "BOM Vita" részre.
+S3.8.4 Néhány csapatot kiválaszthatnak a költség- és gyártási döntő részvételére a költség- és gyártási esemény győztesének meghatározására. A költség- és gyártási döntőt külön tartják a kezdeti zsűrizéstől, és a csapatokat az esemény során tájékoztatják a részvételükről.
+S3.8.5 Döntő esetén a nem döntősök legmagasabb elérhető pontszáma 80 pont.
+S 4 MÉRNÖKI TERVEZÉS ESEMÉNY
+S4.1 Mérnöki Tervezés Célja
+S4.1.1 A tervezési esemény koncepciója a diákok mérnöki folyamatának és erőfeszítésének felmérése, amely egy, a verseny szándékának megfelelő jármű tervezésébe került.
+S4.1.2 A járműtervbe beépített tulajdonosi komponenseket és rendszereket nem értékelik diákként tervezett egységként, hanem csak a csapat egység kiválasztásán és alkalmazásán értékelik.
+S4.1.3 A jármű autonóm vezetési képességére vonatkozó értékelés is része lesz ennek az eseménynek. Ezért az autonóm vezetéshez szükséges összes rendszert megvizsgálják. Ez magában foglalja a vitát az AS-ben használt hardverről és szoftverről is.
+S4.2 Mérnöki Tervezés Jelentés
+S4.2.1 Az EDR-nek tartalmaznia kell a teljes jármű, beleértve az AS-t, rövid leírását a csapat tervezési célkitűzéseinek áttekintésével és levezetésével. Bármilyen információt tartalmazhat, amely a tervezési jellemzők, koncepciók, módszerek vagy célkitűzések körvonalazására, magyarázatára vagy kiemelésére szolgál, hogy kifejezze a jármű értékét és teljesítményét a zsűritagok számára a csapatok saját belátása szerint.
+S4.2.2 Az EDR nem haladhatja meg a tíz oldalt, amely legfeljebb hét oldal tartalomból (szöveg, amely tartalmazhat képeket és grafikonokat) és három oldal rajzból áll.
+S4.2.3 A három EDR rajz (nem renderelés) meg kell mutassa a járművet elölről, felülről és oldalról. Minden rajznak külön oldalon kell szerepelnie.
+S4.2.4 Bármilyen intézkedést alkalmazhatnak a rajzok felülvizsgálatának megkönnyítésére (pl. mérések, részletek, színek) a csapatok saját belátása szerint.
+
+S4.2.5 Az EDR bármely része, amely meghaladja a hét oldal tartalmat és/vagy három oldal rajzot, nem kerül értékelésre.
+S4.2.6 Ha tartalmaz, a borítólapok és tartalomjegyzékek szöveges oldalaknak számítanak.
+S4.2.7 Az EDR-t a csapatok megfelelő tervezési sorba rendezésére használják fel annak áttekintésének minősége alapján.
+S4.2.8 Az EDR-ben említett információk bizonyítékait el kell hozni a versenyre, és a zsűritagok felülvizsgálata érdekében rendelkezésre kell állniuk, kérésre.
+S4.3 Tervezési Adatlap
+S4.3.1 Egy kitöltött DSS-t online kell benyújtani a verseny weboldalán.
+S4.4 Mérnöki Tervezés Eljárás
+S4.4.1 A tervezési esemény a DSS és az EDR benyújtásával és azok áttekintésével kezdődik.
+S4.4.2 A versenyen a csapatok bemutatják tudásukat és járművüket a zsűritagoknak, akik a csapatok teljesítményét a S4.1 fejezetben megfogalmazott tervezési célkitűzések szerint értékelik.
+S4.4.3 Néhány csapatot kiválaszthatnak a tervezési döntő részvételére a mérnöki tervezési esemény győztesének meghatározására. A tervezési döntőt külön tartják a kezdeti zsűrizéstől, és a csapatokat az esemény során tájékoztatják a részvételükről.
+S4.4.4 A csapatok elhozhatnak bármilyen fényképet, rajzot, diagramot, pótalkatrészt vagy egyéb anyagot, amely szerintük támogató a tervezési eseményhez, de a tervezési zsűrizéshez biztosított hely korlátozott lehet.
+S4.4.5 [CSAK EV] Csak az akkumulátor ellenőrzésen átesett, lezárt TSAC-ok mutathatók be vagy szerelhetők fel a járműbe. Nem szabad kinyitni őket.
+S4.4.6 [CSAK EV] Csak kisütött, 5%-os töltöttségi állapot alatti, minden kapcsuk elektromosan elszigetelt akkumulátor cellák mutathatók be.
+S4.4.7 [CSAK DC] Nincs külön tervezési bemutató a DC-hez, azonban a pontozást módosítják, lásd 8. táblázat, és több zsűritag lesz a normál bemutatón, akik az AS-re összpontosítanak.
+S4.4.8 [CSAK DC] Külön tervezési döntő lesz a DC-hez.
+S4.5 Mérnöki Tervezés Zsűrizési Kritériumok
+S4.5.1 A zsűritagok a mérnöki erőfeszítést a csapatok DSS és EDR, a kérdésekre adott válaszok és a jármű ellenőrzése alapján értékelik.
+S4.5.2 A zsűritagok ellenőrzik a járművet, hogy meghatározzák, megfelelőek-e a tervezési koncepciók
+
+S4.5.3 A zsűritagok levonhatnak pontokat, ha a csapat nem tudja megfelelően elmagyarázni a jármű mérnöki kivitelezését és felépítését.
+S4.6 Mérnöki Tervezés Pontozása
+S4.6.1 A csapatnak az S1.1 szerint kell bemutatnia járművét a mérnöki tervezési eseményben való pontszerzéshez.
+S4.6.2 A teljes mérnöki tervezési esemény maximális pontszáma 150 pont.
+S4.6.3 A 7. táblázatban felsorolt maximális pontszámok érvényesek a mérnöki tervezési eseményre.
+Kategória Pontok
+Teljes Jármű Koncepció 20
+Szoftver 10
+Jármű Teljesítmény 30
+Mechanikai / Szerkezeti 15
+Vonórendszer / Hajtómű 25
+LV-Elektromos / Elektronika 10
+Autonóm Funkcionalitás 20
+Versenyző Felület 10
+Mérnöki Tervezés Jelentés (EDR) 10
+7. táblázat: Maximális pontszámok a mérnöki tervezési eseményben
+Kategória Pontok
+Teljes Jármű Koncepció 20
+Szoftver / Számítás 30
+Jármű Teljesítmény 30
+Autonóm Funkcionalitás 70
+8. táblázat: [CSAK DC] Maximális pontszámok a mérnöki tervezési eseményben
+
+  </pre></div>
+
+  <div id="D1" class="section-box"><h2 class="text-2xl font-bold">D1 – Dinamikus Események</h2><pre>
+    D 1 DINAMIKUS ESEMÉNYEK ÁLTALÁNOS
+D1.1 Definíciók
+D1.1.1 Indítás – a rajtvonal fénygátjának áthaladása kezdi a kört.
+D1.1.2 Befejezés – a célvonal fénygátjának áthaladása befejezi a kört. Ugyanaz lehet, mint a rajtvonal.
+D1.1.3 Kör – egy teljes út egy meghatározott pályán, a rajtvonaltól kezdve a célvonalig.
+D1.1.4 Futam – egyetlen kísérlet a dinamikus eseményben való versenyzésre. A futamok egy vagy több körből állnak. Egy futam akkor kezdődik, amikor ZÖLD ZÁSZLÓT vagy az indulási jelet kapják a hivatalnokoktól.
+D1.1.5 Nem Fejezte Be (DNF) – futam indítása anélkül, hogy befejezték volna. A pontozás céljából a DNF-t DQ-ként kezelik.
+D1.1.6 Diszkvalifikált (DQ) – eltávolítás a pontozásból szabálysértés miatt.
+D1.1.7 Érvényes Futam – egy futam, amely sem DNF, sem DQ.
+D1.1.8 Futási Sorrend – az a sorrend, amelyben a csapatok részt vesznek egy dinamikus eseményben. Ha másképp nincs meghatározva, a futási sorrend sor alapú, és az első futamukat teljesítő csapatok kapnak prioritást.
+D1.1.9 Ahhoz, hogy pontot szerezzenek bármely dinamikus eseményben, egy csapatnak legalább egy érvényes futammal kell rendelkeznie abban az eseményben.
+D1.2 Versenyző Korlátozások
+D1.2.1 Összesen minimum három és maximum négy versenyző engedélyezett minden csapat számára.
+D1.2.2 Egy egyéni versenyző nem vezethet több mint két dinamikus eseményben.
+D1.2.3 Az endurance és hatékonyság eseményt egyetlen eseménynek tekintik.
+D1.2.4 Egy egyéni versenyző nem vezethet több mint két futamot minden dinamikus eseményben.
+D1.2.5 Nem több mint két versenyző vezethet minden dinamikus eseményben.
+D1.3 Futamok Száma a Dinamikus Eseményekben
+D1.3.1 A 9. táblázat határozza meg a futamok számát minden dinamikus eseményhez.
+
+<!-- MARK: asdads -->
+Dinamikus Esemény Kézi Üzemmód Autonóm Üzemmód
+Gyorsulás 2 -
+DV Gyorsulás - 2
+Autocross 4 -
+[CSAK DC] DV Autocross - 2
+Endurance 1 -
+Skidpad 2 -
+DV Skidpad - 2
+[CSAK DC] Trackdrive - 1
+9. táblázat: Futamok száma minden dinamikus eseményhez
+D1.4 Dinamikus Terület és Dinamikus Mellények
+D1.4.1 A műszaki ellenőrzések és minden dinamikus esemény a dinamikus területen zajlik.
+D1.4.2 A hivatalnokok négy dinamikus mellényt adnak át minden csapatnak, amelyeket a dinamikus területen viselni kell.
+D1.4.3 Csak négy tag léphet be egyszerre a dinamikus területre csapatonként, beleértve a versenyzőt.
+D1.4.4 A versenyzőknek nem szabad viselniük a dinamikus mellényt, amikor a járműben ülnek. A versenyző mellényét a tolórúdhoz kell rögzíteni.
+D1.4.5 Az ezen a területen használható szerszámok száma azokra korlátozódik, amelyeket a négy csapattag biztonságosan el tud vinni egy úton.
+
+  </pre></div>
+
+</main>
+
+</body>
+</html>

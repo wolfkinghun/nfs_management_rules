@@ -142,10 +142,19 @@
     </div>
   </div>
 
-  <button id="modeToggle" class="px-3 py-2 rounded-md bg-white/10">
-    Light mode
-  </button>
+  <div class="flex gap-2">
+    <!-- Világos mód gomb -->
+    <button id="modeToggle" class="px-3 py-2 rounded-md bg-white/10">
+      Light mode
+    </button>
+
+    <!-- HU gomb -->
+    <button onclick="location.href='second_lang.html'" class="px-3 py-2 rounded-md bg-white/10 hover:bg-white/20 transition">
+      HU
+    </button>
+  </div>
 </header>
+
 
 <script>
 document.getElementById('modeToggle').onclick=function(){
